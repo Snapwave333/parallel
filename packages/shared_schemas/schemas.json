@@ -1,0 +1,211 @@
+{
+  "$schema": "https://json-schemastore.org/example.json",
+  "title": "Parallel API — shared schemas",
+  "description": "Machine-readable request/response types for the Parallel backend, generated from the live implementation (backend/src + tests/e2e.rs). Single source of truth for the Flutter app's model layer.",
+  "version": "0.1.0",
+  "server": { "base_url": "http://localhost:8080", "auth": "Bearer <token>" },
+  "error": { "body": { "type": "object", "required": ["error"], "properties": { "error": { "type": "string" } } } },
+  "types": {
+    "PublicUser": {
+      "type": "object",
+      "properties": {
+        "id": { "type": "integer" },
+        "name": { "type": ["string", "null"] },
+        "age": { "type": ["integer", "null"] },
+        "gender": { "type": ["string", "null"] },
+        "city": { "type": ["string", "null"] },
+        "about": { "type": ["string", "null"] },
+        "dating_intents": { "type": "array", "items": { "type": "string" } },
+        "relationship_goals": { "type": "array", "items": { "type": "string" } },
+        "age_verified": { "type": "boolean" },
+        "identity_verified": { "type": "boolean" }
+      }
+    },
+    "FeatureValue": {
+      "type": "object",
+      "required": ["key", "value"],
+      "properties": {
+        "key": { "$ref": "#/definitions/FeatureKey" },
+        "value": { "type": "string" },
+        "importance": { "type": "integer", "minimum": 0, "maximum": 5 },
+        "classification": { "enum": ["preference", "dealbreaker", "soft"] },
+        "visibility": { "enum": ["public", "private"] }
+      }
+    },
+    "FeatureKey": {
+      "enum": [
+        "communication.directness", "communication.message_length", "communication.response_frequency",
+        "communication.call_comfort", "communication.silence_comfort", "communication.text_difficult_convos",
+        "social_energy.crowd_tolerance", "social_energy.group_size", "social_energy.alone_time",
+        "social_energy.recovery_time", "social_energy.parallel_play",
+        "sensory.noise_sensitivity", "sensory.light_sensitivity", "sensory.crowd_sensitivity", "sensory.touch_sensitivity",
+        "affection.public_affection", "affection.ask_before_touch",
+        "planning.advance_notice", "planning.spontaneity", "planning.reminders",
+        "routine.sleep_schedule", "routine.work_schedule",
+        "lifestyle.alcohol", "lifestyle.smoking", "lifestyle.pets", "lifestyle.children",
+        "relationship.goals", "relationship.monogamy",
+        "conflict.first_reaction", "conflict.useful_conflict",
+        "exec.function_planning", "exec.function_forgotten", "exec.function_last_minute"
+      ]
+    },
+    "IntentSignal": { "enum": ["romantic", "more_time", "friendship", "unsure", "meet", "not_compatible"] },
+    "Temperature": { "enum": ["chatty", "normal", "quiet", "low_energy", "space"] },
+    "TogetherSignal": { "enum": ["quiet", "overwhelmed", "enjoying", "need_exit", "low_energy", "laugh", "breather", "present"] },
+    "PlanState": { "enum": ["pending", "accepted", "declined", "completed", "cancelled"] }
+  },
+  "endpoints": {
+    "GET /health": {
+      "auth": false,
+      "response": { "ok": true, "service": "parallel", "time": 0 }
+    },
+    "GET /users/{id}/profile": {
+      "auth": false,
+      "response": { "user": { "$ref": "#/types/PublicUser" }, "features": [] }
+    },
+    "POST /auth/register": {
+      "auth": false,
+      "request": { "email": "string", "password": "string", "name": "string?" },
+      "response": { "token": "string", "user": { "$ref": "#/types/PublicUser" } }
+    },
+    "POST /auth/login": {
+      "auth": false,
+      "request": { "email": "string", "password": "string" },
+      "response": { "token": "string", "user": { "$ref": "#/types/PublicUser" } }
+    },
+    "POST /auth/logout": { "auth": true, "request": {}, "response": { "ok": true } },
+    "GET /auth/me": { "auth": true, "response": { "id": 0, "email": "string" } },
+    "PATCH /auth/me": {
+      "auth": true,
+      "request": {
+        "name": "string?", "age": "int?", "gender": "string?", "city": "string?",
+        "dating_intents": ["string?"], "relationship_goals": ["string?"],
+        "about": "string?", "discovery_enabled": "bool?"
+      },
+      "response": { "user": { "$ref": "#/types/PublicUser" } }
+    },
+    "GET /profile/me": {
+      "auth": true,
+      "response": {
+        "user": { "$ref": "#/types/PublicUser" },
+        "photos": [{ "id": 0, "url": "string", "position": 0 }],
+        "features": [{ "key": "string", "value": "string", "importance": 0, "classification": "string", "visibility": "string" }],
+        "interests": ["string"],
+        "discovery_enabled": "bool"
+      }
+    },
+    "GET /compat/catalog": {
+      "auth": true,
+      "response": [{ "dimension": "string", "features": [{ "key": { "$ref": "#/types/FeatureKey" }, "label": "string", "ordinal": "bool", "options": ["string"] }] }]
+    },
+    "GET /compat/features": { "auth": true, "response": [{ "key": "string", "value": "string", "importance": 0, "classification": "string", "visibility": "string" }] },
+    "POST /compat/features": {
+      "auth": true,
+      "request": { "features": [{ "$ref": "#/types/FeatureValue" }] },
+      "response": { "ok": true }
+    },
+    "DELETE /compat/features/{key}": { "auth": true, "response": { "ok": true } },
+    "GET /compat/interests": { "auth": true, "response": { "interests": ["string"] } },
+    "POST /compat/interests": { "auth": true, "request": { "interests": ["string"] }, "response": { "ok": true } },
+    "GET /compat/explain/{other_id}": {
+      "auth": true,
+      "response": {
+        "dealbreaker_conflicts": [],
+        "dimensions": [{ "dimension": "string", "label": "string", "alignment": "Aligned|Complementary|PotentialFriction|Unknown", "compat": "float?", "importance": { "a": 0, "b": 0 }, "items": { "a": { "value": "string" }, "b": { "value": "string" } } }],
+        "shared_interests": 0,
+        "explain": [{ "level": "easy|talk|unknown", "text": "string" }]
+      }
+    },
+    "GET /discover/today": {
+      "auth": true,
+      "response": {
+        "count": 0,
+        "day": 0,
+        "introductions": [{
+          "user_id": 0,
+          "user": { "$ref": "#/types/PublicUser" },
+          "photos": [{ "id": 0, "url": "string", "position": 0 }],
+          "reason": {
+            "overall": "number (0..100)",
+            "shared_interests": 0,
+            "explain": [{ "level": "string", "text": "string" }]
+          }
+        }]
+      }
+    },
+    "POST /discover/introduce": {
+      "auth": true,
+      "request": { "to_user": 0, "reason": "string?" },
+      "response": {
+        "oneOf": [
+          { "matched": false, "message": "Introduction sent." },
+          { "matched": true, "conversation_id": 0, "message": "You both wanted an introduction." }
+        ],
+        "conflicts": [409]
+      }
+    },
+    "GET /discover/requests/incoming": { "auth": true, "response": [{ "id": 0, "from_user": 0, "to_user": 0, "other_user": { "$ref": "#/types/PublicUser" }, "status": "pending", "reason": "string?", "created_at": 0 }] },
+    "GET /discover/requests/outgoing": { "auth": true, "response": [{ "id": 0, "from_user": 0, "to_user": 0, "other_user": { "$ref": "#/types/PublicUser" }, "status": "pending", "reason": "string?", "created_at": 0 }] },
+    "POST /discover/requests/{id}/accept": { "auth": true, "request": {}, "response": { "ok": true, "conversation_id": 0 } },
+    "POST /discover/requests/{id}/decline": { "auth": true, "request": {}, "response": { "ok": true } },
+    "GET /discover/connections": { "auth": true, "response": [{ "user_id": 0, "user": { "$ref": "#/types/PublicUser" }, "since": 0 }] },
+    "GET /messaging/conversations": { "auth": true, "response": [{ "id": 0, "other_user": { "$ref": "#/types/PublicUser" }, "last_message": { "oneOf": [{ "id": 0, "sender_id": 0, "body": "string", "created_at": 0 }, null] } }] },
+    "POST /messaging/conversations": { "auth": true, "request": { "other_user_id": 0 }, "response": { "id": 0, "ok": true } },
+    "GET /messaging/conversations/{id}/messages": {
+      "auth": true,
+      "query": { "after_id": "int?" },
+      "response": { "conversation_id": 0, "messages": [{ "id": 0, "conversation_id": 0, "sender_id": 0, "body": "string", "kind": "text", "no_response_needed": false, "state": "sent", "created_at": 0 }] }
+    },
+    "POST /messaging/conversations/{id}/messages": {
+      "auth": true,
+      "request": { "body": "string", "kind": "string?", "no_response_needed": "bool?" },
+      "response": { "type": "message", "message": { "id": 0, "conversation_id": 0, "sender_id": 0, "body": "string", "kind": "text", "no_response_needed": false, "state": "sent", "created_at": 0 } }
+    },
+    "GET /messaging/conversations/{id}/contract": { "auth": true, "response": { "conversation_id": 0, "rules": [{ "key": "string", "label": "string", "ask_first": "bool", "enabled": "bool" }] } },
+    "PUT /messaging/conversations/{id}/contract": { "auth": true, "request": { "rules": [{ "key": "string", "enabled": "bool" }] }, "response": { "conversation_id": 0, "rules": [{ "key": "string", "label": "string", "ask_first": "bool", "enabled": "bool" }] } },
+    "GET /messaging/contracts/catalog": { "auth": true, "response": [{ "key": "string", "label": "string", "ask_first": "bool" }] },
+    "GET /messaging/intent/{other_id}": { "auth": true, "response": { "mine": ["string", "null"], "theirs_revealed": "bool", "mutual": ["string", "null"] } },
+    "POST /messaging/intent/{other_id}": { "auth": true, "request": { "signal": { "$ref": "#/types/IntentSignal" } }, "response": { "ok": true } },
+    "GET /messaging/status/me": { "auth": true, "response": { "battery": 0, "temperature": { "$ref": "#/types/Temperature" } } },
+    "PUT /messaging/status/me": { "auth": true, "request": { "battery": "int? 0..4", "temperature": { "$ref": "#/types/Temperature", "or": "null" } }, "response": { "battery": 0, "temperature": "string" } },
+    "GET /messaging/status/{other_id}": { "auth": true, "response": { "battery": 0, "temperature": { "$ref": "#/types/Temperature" } } },
+    "GET /dates/prefs": {
+      "auth": true,
+      "response": { "user_id": 0, "distance_miles": 0, "age_min": 0, "age_max": 0, "city": "string?", "quiet_venues": false, "outside": false, "group_size_max": 0, "weekdays": ["int"], "weekends": false, "evening_ok": false, "daytime_ok": false }
+    },
+    "PUT /dates/prefs": {
+      "auth": true,
+      "request": { "distance_miles": "int?", "age_min": "int?", "age_max": "int?", "city": "string?", "quiet_venues": "bool?", "outside": "bool?", "group_size_max": "int?", "weekdays": ["int?"], "weekends": "bool?", "evening_ok": "bool?", "daytime_ok": "bool?" },
+      "response": { "$ref": "#/endpoints/GET <> /dates/prefs/response" }
+    },
+    "GET /dates/plans": { "auth": true, "response": { "plans": [{ "plan": { "id": 0, "initiator_id": 0, "partner_id": 0, "title": "string", "plan_a": "string", "plan_b": ["string", "null"], "plan_c": ["string", "null"], "day": 0, "start_at": ["int", "null"], "detail": ["string", "null"], "state": { "$ref": "#/types/PlanState" }, "other_user": { "$ref": "#/types/PublicUser" } } }] } },
+    "POST /dates/plans": {
+      "auth": true,
+      "request": { "partner_id": 0, "title": "string", "plan_a": "string", "plan_b": "string?", "plan_c": "string?", "day": "int (day ordinal)", "start_at": "int?", "detail": "string?" },
+      "response": { "id": 0, "state": "pending" }
+    },
+    "POST /dates/plans/{id}/accept": { "auth": true, "request": {}, "response": { "id": 0, "state": "accepted" } },
+    "POST /dates/plans/{id}/decline": { "auth": true, "request": {}, "response": { "id": 0, "state": "declined" } },
+    "POST /dates/plans/{id}/done": { "auth": true, "request": {}, "response": { "id": 0, "state": "completed|cancelled" } },
+    "GET /together/sessions": { "auth": true, "response": { "sessions": [{ "id": 0, "pairing_code": "string", "state": "waiting|active|ended", "permission_scope": { "oneOf": [{ "user_b": true, "emoji_reactions": true, "active_level": true, "social_status": true, "location_in_vicinity": true, "exit_button": true, "no_data_saved": true }, null] }, "created_at": 0, "other_user": { "$ref": "#/types/PublicUser" } }] } },
+    "POST /together/sessions": { "auth": true, "request": { "partner_id": 0 }, "response": { "id": 0, "state": "waiting", "pairing_code": "XXXXXX" } },
+    "POST /together/join": { "auth": true, "request": { "pairing_code": "string" }, "response": { "id": 0, "state": "active", "pairing_code": "string" } },
+    "POST /together/sessions/{id}/signal": { "auth": true, "request": { "signal": { "$ref": "#/types/TogetherSignal" } }, "response": { "type": "signal", "signal": "string", "user_id": 0, "created_at": 0 } },
+    "POST /together/sessions/{id}/end": { "auth": true, "request": {}, "response": { "ok": true } },
+    "GET /safety/blocks": { "auth": true, "response": [{ "blocked_id": 0, "user": { "$ref": "#/types/PublicUser" }, "created_at": 0 }] },
+    "POST /safety/blocks": { "auth": true, "request": { "user_id": 0 }, "response": { "ok": true } },
+    "DELETE /safety/blocks/{id}": { "auth": true, "response": { "ok": true } },
+    "GET /safety/reports": { "auth": true, "response": [{ "reported_id": 0, "category": "string", "reason": "string?", "created_at": 0 }] },
+    "POST /safety/reports": {
+      "auth": true,
+      "request": { "user_id": 0, "category": "string?", "reason": "string?" },
+      "response": { "ok": true, "message": "Thanks. Our team looks into this and you are never shown to this person again." }
+    },
+    "POST /dev/seed": {
+      "auth": false,
+      "note": "debug builds only",
+      "response": { "seeded": [{ "user_id": 0, "email": "string", "name": "string", "password": "password123", "token": "string" }] }
+    },
+    "WS /messaging/ws/chat": { "auth": "token query param", "query": { "token": "string", "conversation_id": "int" }, "events": [{ "type": "message", "message": { "$ref": "#/endpoints/POST <> /messaging/conversations/{id}/messages/request.response.message" } }] },
+    "WS /together/ws/session": { "auth": "token query param", "query": { "token": "string", "session_id": "int" }, "events": [{ "type": "joined" }, { "type": "signal", "signal": "string", "user_id": 0, "created_at": 0 }] }
+  }
+}

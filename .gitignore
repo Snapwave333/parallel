@@ -1,0 +1,21 @@
+# Editors
+.idea/
+.vscode/
+*.iml
+
+# Runtime artifacts
+/seed.json
+/server.out.log
+/server.err.log
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Backend build / DB (see backend/.gitignore)
+backend/target/
+
+# Flutter build (see apps/mobile/.gitignore)
+apps/mobile/build/
+apps/mobile/.dart_tool/
