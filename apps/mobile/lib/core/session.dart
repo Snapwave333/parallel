@@ -8,7 +8,8 @@ import '../core/models.dart';
 /// token) and the current user. Pages read this through [AppState.of] and
 /// call its mutations instead of holding their own auth state.
 class AppState extends ChangeNotifier {
-  AppState({String? baseUrl}) : api = ApiClient(baseUrl: baseUrl ?? apiBase);
+  AppState({String? baseUrl, ApiClient? api})
+      : api = api ?? ApiClient(baseUrl: baseUrl ?? apiBase);
 
   final ApiClient api;
   PublicUser? me;

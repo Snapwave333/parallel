@@ -16,9 +16,11 @@ class ApiException implements Exception {
 /// Thin JSON client for the Parallel backend. Holds the bearer token, so a
 /// logged-in [ApiClient] is all a feature page needs.
 class ApiClient {
-  ApiClient({this.baseUrl = apiBase});
+  ApiClient({this.baseUrl = apiBase, http.Client? client})
+      : _client = client ?? http.Client();
 
   final String baseUrl;
+  final http.Client _client;
   String? token;
 
   Uri _uri(String path) => Uri.parse('$baseUrl$path');
@@ -40,21 +42,21 @@ class ApiClient {
       final headers = _headers(json: hasBody);
       switch (method.toUpperCase()) {
         case 'GET':
-          resp = await http.get(uri, headers: headers);
+          resp = await _client.get(uri, headers: headers);
         case 'POST':
-          resp = await http.post(uri,
+          resp = await _client.post(uri,
               headers: headers,
               body: hasBody ? jsonEncode(body) : null);
         case 'PUT':
-          resp = await http.put(uri,
+          resp = await _client.put(uri,
               headers: headers,
               body: hasBody ? jsonEncode(body) : null);
         case 'PATCH':
-          resp = await http.patch(uri,
+          resp = await _client.patch(uri,
               headers: headers,
               body: hasBody ? jsonEncode(body) : null);
         case 'DELETE':
-          resp = await http.delete(uri, headers: headers);
+          resp = await _client.delete(uri, headers: headers);
         default:
           throw ApiException(0, 'unsupported method $method');
       }
